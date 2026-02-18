@@ -1,205 +1,185 @@
-Turbo Assembler	 Version 4.1	    02/17/26 18:54:20	    Page 1
+Turbo Assembler	 Version 4.1	    02/18/26 22:07:16	    Page 1
 my_frame.asm
 
 
 
       1	0000			     .model tiny
-      2
-      3	      =0028		     x_offset				= 20d*2d
-      4	      =00A0		     length_of_terminal_string		= 80d*2h	  ; 160	bytes per row
-      5	      =0028		     length_of_horizontal_part_of_frame	= 40d
-      6
-      7	0000			     .code
-      8				     org 100h
-      9
-     10	      =B800		     VIDEOSEG equ 0B800h
-     11
-     12	0100			     start:
-     13	0100  B8 B800				     mov ax, VIDEOSEG
-     14	0103  8E C0				     mov es, ax
-     15
-     16	0105  BE 0010				     mov si, 10h				; skip 16 lines	(0..15), start at   +
-     17				     line 16
-     18	0108  B9 0028				     mov cx, length_of_horizontal_part_of_frame
-     19	010B  BF 0005				     mov di, 5d					; number of inner rows
+      2	0000			     .code
+      3				     org 100h
+      4	      =001E		     x_offset				= 30d
+      5	      =00A0		     length_of_terminal_string		= 80d*2h ; length of terminal string
+      6	      =0028		     length_of_horizontal_part_of_frame	= 40d	 ; length of horizontal	border
+      7
+      8
+      9	      =B800		     VIDEOSEG	     equ 0B800h
+     10
+     11	0100  B8 B800		     start:	     mov ax, VIDEOSEG
+     12	0103  8E C0				     mov es, ax
+     13
+     14	0105  BE 0005				     mov si, 5h					; 5h = number strings to skip
+     15	0108  B9 0028				     mov cx, length_of_horizontal_part_of_frame	; length of the	border
+     16	010B  BF 0005				     mov di, 5d					; number border's strings
+     17
+     18	010E  E8 004C				     call CalculateCoordinates
+     19	0111  E8 0077				     call PrintHorizontalPartOfFrame
      20
-     21	010E  E8 004F				     call CalculateCoordinates
-     22	0111  E8 007C				     call PrintHorizontalPartOfFrame
-     23
-     24						     ; как в коде друга: перед вертикалями		    +
-     25				     гарантируем CX=ширина
-     26	0114  B9 0028				     mov cx, length_of_horizontal_part_of_frame
-     27
-     28	0117			     print_vertical_part_of_frame:
-     29	0117  83 FF 00				     cmp di, 0
-     30	011A  74 35				     je	 end_of_program
-     31	011C  4F				     dec di
-     32	011D  46				     inc si
-     33	011E  E8 003F				     call CalculateCoordinates
-     34	0121  EB 01 90				     jmp one_vertical_part_of_frame
-     35
-     36	0124			     one_vertical_part_of_frame:
-     37	0124  83 F9 28				     cmp cx, length_of_horizontal_part_of_frame
-     38	0127  74 14				     je	 print_left_vertical
-     39	0129  83 FF 02				     cmp di, 2
-     40	012C  74 17				     je	 second_conditional
+     21	0114			     print_vertical_part_of_frame:
+     22	0114  83 FF 00				     cmp di, 00d
+     23	0117  74 35				     je	 end_of_program
+     24	0119  4F				     dec di
+     25	011A  46				     inc si
+     26	011B  E8 003F				     call CalculateCoordinates
+     27	011E  EB 01 90				     jmp one_vertical_part_of_frame
+     28
+     29	0121			     one_vertical_part_of_frame:
+     30	0121  83 F9 28				     cmp cx, length_of_horizontal_part_of_frame
+     31	0124  74 14				     je	 print_one_vertical_part_of_frame
+     32	0126  83 FF 02				     cmp di, 2
+     33	0129  74 17				     je	 second_conditional
+     34	012B			     back3:
+     35	012B  83 C3 02				     add bx, 2h
+     36	012E  E2 F1				     loop one_vertical_part_of_frame
+     37
+     38	0130  B9 0028				     mov cx, length_of_horizontal_part_of_frame
+     39	0133  26: C7 07	0DBA			     mov es:[bx], 0DBAh	     ; print "||" (bright magenta on black)
+     40	0138  EB DA				     jmp print_vertical_part_of_frame
      41
-     42	012E			     back3:
-     43	012E  83 C3 02				     add bx, 2
-     44	0131  E2 F1				     loop one_vertical_part_of_frame
-     45
-     46						     ; ВАЖНО: этот блок ты потерял — он ставит	    +
-     47				     правую границу и переводит на след. строку
-     48	0133  B9 0028				     mov cx, length_of_horizontal_part_of_frame
-     49	0136  26: C7 07	0DBA			     mov es:word ptr [bx], 0DBAh	       ; рамка: bright magenta ║	on  +
-     50				     black
-     51	013B  EB DA				     jmp print_vertical_part_of_frame
-     52
-     53	013D			     print_left_vertical:
-     54	013D  26: C7 07	0DBA			     mov es:word ptr [bx], 0DBAh	       ; рамка: bright magenta ║	on  +
-     55				     black
-     56	0142  49				     dec cx
-     57	0143  EB DF				     jmp one_vertical_part_of_frame
-Turbo Assembler	 Version 4.1	    02/17/26 18:54:20	    Page 2
+     42	013A			     print_one_vertical_part_of_frame:
+     43	013A  26: C7 07	0DBA			     mov es:[bx], 0DBAh	     ; (bright magenta on black)
+     44	013F  49				     dec cx
+     45	0140  EB DF				     jmp one_vertical_part_of_frame
+     46
+     47	0142			     second_conditional:
+     48	0142  83 F9 18				     cmp cx, 18h	     ; from which value	start print terminal string
+     49	0145  74 02				     je	 print_string_length
+     50	0147  EB E2				     jmp back3
+     51
+     52	0149			     print_string_length:
+     53	0149  E8 001C				     call PrintString
+     54	014C  EB D3				     jmp one_vertical_part_of_frame
+     55
+     56	014E			     end_of_program:
+     57	014E  46				     inc si
+Turbo Assembler	 Version 4.1	    02/18/26 22:07:16	    Page 2
 my_frame.asm
 
 
 
-     58
-     59	0145			     second_conditional:
-     60	0145  83 F9 23				     cmp cx, 35d			       ; с какого места	    +
-     61				     печатать строку
-     62	0148  74 02				     je	 print_string_length
-     63	014A  EB E2				     jmp back3
+     58	014F  E8 000B				     call CalculateCoordinates
+     59	0152  B9 0028				     mov cx, length_of_horizontal_part_of_frame
+     60	0155  E8 0033				     call PrintHorizontalPartOfFrame
+     61
+     62	0158  B8 4C00				     mov ax, 4c00h
+     63	015B  CD 21				     int 21h
      64
-     65	014C			     print_string_length:
-     66	014C  E8 001C				     call PrintString
-     67	014F  EB D3				     jmp one_vertical_part_of_frame
-     68
-     69	0151			     end_of_program:
-     70	0151  46				     inc si
-     71	0152  E8 000B				     call CalculateCoordinates
-     72	0155  B9 0028				     mov cx, length_of_horizontal_part_of_frame
-     73	0158  E8 0035				     call PrintHorizontalPartOfFrame
-     74
-     75	015B  B8 4C00				     mov ax, 4C00h
-     76	015E  CD 21				     int 21h
-     77
-     78				     ;------------------------------------------------------------------------
-     79				     ; CalculateCoordinates: BX	= SI * length_of_terminal_string + x_offset
-     80				     ;------------------------------------------------------------------------
-     81	0160			     CalculateCoordinates proc
-     82	0160  B8 00A0				     mov ax, length_of_terminal_string
-     83	0163  F7 E6				     mul si
-     84	0165  8B D8				     mov bx, ax
-     85	0167  83 C3 28				     add bx, x_offset
-     86	016A  C3				     ret
-     87	016B			     CalculateCoordinates endp
-     88
-     89				     ;---------------------------------------------------------------------------
-     90				     ; PrintString: prints command tail	from PSP (length = DS:[80h]), from DS:[82h]
-     91				     ; (сохраняем “костыль”	друга: после печати делаем dec+
-     92				     cx	/ add bx,2)
-     93				     ; Цвет	текста: bright cyan (0Bh)
-     94				     ;---------------------------------------------------------------------------
-     95	016B			     PrintString proc
-     96	016B  51				     push cx
-     97	016C  56				     push si
-     98	016D  53				     push bx
-     99
-    100	016E  33 C9				     xor cx, cx
-    101	0170  8A 0E 0080			     mov cl, ds:[80h]
-    102	0174  E3 12				     jcxz ps_done		  ; если аргументов нет —	    +
-    103				     ничего не печатаем
-    104
-    105	0176  FE C9				     dec cl			  ; как у друга (не трогаем	    +
-    106				     логику)
-    107	0178  BE 0082				     mov si, 82h
-    108
-    109	017B			     horizontal_string:
-    110	017B  8A 04				     mov al, [si]
-    111	017D  B4 0B				     mov ah, 0Bh		  ; текст:	bright cyan on black
-    112	017F  26: 89 07				     mov es:word ptr [bx], ax
-    113	0182  83 C3 02				     add bx, 2
-    114	0185  46				     inc si
-Turbo Assembler	 Version 4.1	    02/17/26 18:54:20	    Page 3
+     65				     ;------------------------------------------------------------------------
+     66				     ; Calculate Coordinates of	videomemory in registrs	BX and SI
+     67				     ; Expect: BX, SI
+     68				     ; Exit:   BX - calculated index
+     69				     ; Destr:  AX
+     70				     ;-------------------------------------------------------------------------
+     71	015D			     CalculateCoordinates proc
+     72	015D  B8 00A0				     mov ax, length_of_terminal_string
+     73	0160  F7 E6				     mul si
+     74	0162  8B D8				     mov bx, ax
+     75	0164  83 C3 1E				     add bx, x_offset
+     76	0167  C3				     ret
+     77	0168					     endp
+     78
+     79				     ;---------------------------------------------------------------------------
+     80				     ;Print: terminal string (length = ds:[80h]) begin from [82h]
+     81				     ;Entry: no
+     82				     ;Exit:  no
+     83				     ;Destr: CX(++), BX	(+=2), AX
+     84				     ;---------------------------------------------------------------------------
+     85	0168			     PrintString proc
+     86	0168  51				     push cx
+     87	0169  56				     push si
+     88	016A  53				     push bx
+     89	016B  33 C9				     xor cx, cx
+     90	016D  8A 0E 0080			     mov cl, ds:[80h]
+     91	0171  FE C9				     dec cl ; dont need	last symbol = '<enter>'
+     92	0173  BE 0082				     mov si, 82h
+     93
+     94	0176			     horizontal_string:
+     95	0176  8A 04				     mov al, [si]
+     96	0178  B4 0B				     mov ah, 0Bh	    ; bright cyan on black
+     97	017A  26: 89 07				     mov es:[bx], ax
+     98	017D  83 C3 02				     add bx, 2h
+     99	0180  46				     inc si
+    100	0181  E2 F3				     loop horizontal_string
+    101
+    102	0183  5B				     pop bx
+    103	0184  5E				     pop si
+    104	0185  59				     pop cx
+    105	0186  49				     dec cx
+    106	0187  83 C3 02				     add bx, 2h
+    107	018A  C3				     ret
+    108	018B					     endp
+    109
+    110				     ;-------------------------------------------------------------------------
+    111				     ; Print horizontal	border length <cx> to videomemory [bx]
+    112				     ; Expect: CX - length of border
+    113				     ;	       BX - adress from	which border was writted
+    114				     ; Exit:   nothing
+Turbo Assembler	 Version 4.1	    02/18/26 22:07:16	    Page 3
 my_frame.asm
 
 
 
-    115	0186  E2 F3				     loop horizontal_string
-    116
-    117	0188			     ps_done:
-    118	0188  5B				     pop bx
-    119	0189  5E				     pop si
-    120	018A  59				     pop cx
-    121	018B  49				     dec cx			  ; костыль друга
-    122	018C  83 C3 02				     add bx, 2			  ; костыль друга
-    123	018F  C3				     ret
-    124	0190			     PrintString endp
-    125
-    126				     ;------------------------------------------------------------------------
-    127				     ; PrintHorizontalPartOfFrame: печатает верх/низ рамки
-    128				     ; Цвет	рамки: bright magenta (0Dh)
-    129				     ;------------------------------------------------------------------------
-    130	0190			     PrintHorizontalPartOfFrame	proc
-    131	0190  51				     push cx
-    132
-    133	0191			     horizontal_frame:
-    134	0191  83 FF 05				     cmp di, 5d
-    135	0194  74 08				     je	 upper_corner
-    136	0196  83 FF 00				     cmp di, 0
-    137	0199  74 20				     je	 bottom_corner
-    138	019B  EB 3B 90				     jmp draw_hor
-    139
-    140	019E			     upper_corner:
-    141	019E  83 F9 28				     cmp cx, length_of_horizontal_part_of_frame
-    142	01A1  74 08				     je	 left_upper_corner
-    143	01A3  83 F9 01				     cmp cx, 1
-    144	01A6  74 0B				     je	 right_upper_corner
-    145	01A8  EB 2E 90				     jmp draw_hor
-    146
-    147	01AB			     left_upper_corner:
-    148	01AB  26: C7 07	0DC9			     mov es:word ptr [bx], 0DC9h	      ;	╔ magenta
-    149	01B0  EB 2B 90				     jmp advance
-    150
-    151	01B3			     right_upper_corner:
-    152	01B3  26: C7 07	0DBB			     mov es:word ptr [bx], 0DBBh	      ;	╗ magenta
-    153	01B8  EB 23 90				     jmp advance
-    154
-    155	01BB			     bottom_corner:
-    156	01BB  83 F9 28				     cmp cx, length_of_horizontal_part_of_frame
-    157	01BE  74 08				     je	 left_bottom_corner
-    158	01C0  83 F9 01				     cmp cx, 1
-    159	01C3  74 0B				     je	 right_bottom_corner
-    160	01C5  EB 11 90				     jmp draw_hor
-    161
-    162	01C8			     left_bottom_corner:
-    163	01C8  26: C7 07	0DC8			     mov es:word ptr [bx], 0DC8h	      ;	╚ magenta
-    164	01CD  EB 0E 90				     jmp advance
+    115				     ; Destr:  BX
+    116				     ;--------------------------------------------------------------------------
+    117	018B			     PrintHorizontalPartOfFrame	proc
+    118	018B  51				     push cx
+    119	018C			     horizontal_frame:
+    120	018C  83 FF 05				     cmp di, 5d
+    121	018F  74 08				     je	 upper_corner
+    122	0191  83 FF 00				     cmp di, 0h
+    123	0194  74 20				     je	 bottom_corner
+    124	0196			     next:
+    125	0196  EB 3B 90				     jmp next2
+    126
+    127	0199			     upper_corner:
+    128	0199  83 F9 28				     cmp cx, length_of_horizontal_part_of_frame
+    129	019C  74 08				     je	 left_upper_corner
+    130	019E  83 F9 01				     cmp cx, 1d
+    131	01A1  74 0B				     je	 right_upper_corner
+    132	01A3  EB 2E 90				     jmp next2
+    133
+    134	01A6			     left_upper_corner:
+    135	01A6  26: C7 07	0DC9			     mov es:[bx], 0DC9h	; print	left up	corner (magenta)
+    136	01AB  EB 2B 90				     jmp next3
+    137
+    138	01AE			     right_upper_corner:
+    139	01AE  26: C7 07	0DBB			     mov es:[bx], 0DBBh	; print	right bottom corner (magenta)
+    140	01B3  EB 23 90				     jmp next3
+    141
+    142	01B6			     bottom_corner:
+    143	01B6  83 F9 28				     cmp cx, length_of_horizontal_part_of_frame
+    144	01B9  74 08				     je	 left_back_corner
+    145	01BB  83 F9 01				     cmp cx, 1d
+    146	01BE  74 0B				     je	 right_back_corner
+    147	01C0  EB 11 90				     jmp next2
+    148
+    149	01C3			     left_back_corner:
+    150	01C3  26: C7 07	0DC8			     mov es:[bx], 0DC8h	; print	left up	corner (magenta)
+    151	01C8  EB 0E 90				     jmp next3
+    152
+    153	01CB			     right_back_corner:
+    154	01CB  26: C7 07	0DBC			     mov es:[bx], 0DBCh	; print	left bottom corner (magenta)
+    155	01D0  EB 06 90				     jmp next3
+    156
+    157	01D3			     next2:
+    158	01D3  26: C7 07	0DCD			     mov es:[bx], 0DCDh	; print	'=' (magenta)
+    159	01D8			     next3:
+    160	01D8  83 C3 02				     add bx, 2h
+    161	01DB  E2 AF				     loop horizontal_frame
+    162	01DD  59				     pop cx
+    163	01DE  C3				     ret
+    164	01DF					     endp
     165
-    166	01D0			     right_bottom_corner:
-    167	01D0  26: C7 07	0DBC			     mov es:word ptr [bx], 0DBCh	      ;	╝ magenta
-    168	01D5  EB 06 90				     jmp advance
-    169
-    170	01D8			     draw_hor:
-    171	01D8  26: C7 07	0DCD			     mov es:word ptr [bx], 0DCDh	      ;	═ magenta
-Turbo Assembler	 Version 4.1	    02/17/26 18:54:20	    Page 4
-my_frame.asm
-
-
-
-    172
-    173	01DD			     advance:
-    174	01DD  83 C3 02				     add bx, 2
-    175	01E0  E2 AF				     loop horizontal_frame
-    176
-    177	01E2  59				     pop cx
-    178	01E3  C3				     ret
-    179	01E4			     PrintHorizontalPartOfFrame	endp
-    180
-    181				     end start
-Turbo Assembler	 Version 4.1	    02/17/26 18:54:20	    Page 5
+    166				     end start
+Turbo Assembler	 Version 4.1	    02/18/26 22:07:16	    Page 4
 Symbol Table
 
 
@@ -207,9 +187,9 @@ Symbol Table
 
 Symbol Name			  Type	 Value
 
-??DATE				  Text	 "02/17/26"
+??DATE				  Text	 "02/18/26"
 ??FILENAME			  Text	 "my_frame"
-??TIME				  Text	 "18:54:20"
+??TIME				  Text	 "22:07:16"
 ??VERSION			  Number 040A
 @32BIT				  Text	 0
 @CODE				  Text	 DGROUP
@@ -223,37 +203,37 @@ Symbol Name			  Type	 Value
 @MODEL				  Text	 1
 @STACK				  Text	 DGROUP
 @WORDSIZE			  Text	 2
-ADVANCE				  Near	 DGROUP:01DD
-BACK3				  Near	 DGROUP:012E
-BOTTOM_CORNER			  Near	 DGROUP:01BB
-CALCULATECOORDINATES		  Near	 DGROUP:0160
-DRAW_HOR			  Near	 DGROUP:01D8
-END_OF_PROGRAM			  Near	 DGROUP:0151
-HORIZONTAL_FRAME		  Near	 DGROUP:0191
-HORIZONTAL_STRING		  Near	 DGROUP:017B
-LEFT_BOTTOM_CORNER		  Near	 DGROUP:01C8
-LEFT_UPPER_CORNER		  Near	 DGROUP:01AB
+BACK3				  Near	 DGROUP:012B
+BOTTOM_CORNER			  Near	 DGROUP:01B6
+CALCULATECOORDINATES		  Near	 DGROUP:015D
+END_OF_PROGRAM			  Near	 DGROUP:014E
+HORIZONTAL_FRAME		  Near	 DGROUP:018C
+HORIZONTAL_STRING		  Near	 DGROUP:0176
+LEFT_BACK_CORNER		  Near	 DGROUP:01C3
+LEFT_UPPER_CORNER		  Near	 DGROUP:01A6
 LENGTH_OF_HORIZONTAL_PART_OF_FRA  Number 0028
 ME
 LENGTH_OF_TERMINAL_STRING	  Number 00A0
-ONE_VERTICAL_PART_OF_FRAME	  Near	 DGROUP:0124
-PRINTHORIZONTALPARTOFFRAME	  Near	 DGROUP:0190
-PRINTSTRING			  Near	 DGROUP:016B
-PRINT_LEFT_VERTICAL		  Near	 DGROUP:013D
-PRINT_STRING_LENGTH		  Near	 DGROUP:014C
-PRINT_VERTICAL_PART_OF_FRAME	  Near	 DGROUP:0117
-PS_DONE				  Near	 DGROUP:0188
-RIGHT_BOTTOM_CORNER		  Near	 DGROUP:01D0
-RIGHT_UPPER_CORNER		  Near	 DGROUP:01B3
-SECOND_CONDITIONAL		  Near	 DGROUP:0145
+NEXT				  Near	 DGROUP:0196
+NEXT2				  Near	 DGROUP:01D3
+NEXT3				  Near	 DGROUP:01D8
+ONE_VERTICAL_PART_OF_FRAME	  Near	 DGROUP:0121
+PRINTHORIZONTALPARTOFFRAME	  Near	 DGROUP:018B
+PRINTSTRING			  Near	 DGROUP:0168
+PRINT_ONE_VERTICAL_PART_OF_FRAME  Near	 DGROUP:013A
+PRINT_STRING_LENGTH		  Near	 DGROUP:0149
+PRINT_VERTICAL_PART_OF_FRAME	  Near	 DGROUP:0114
+RIGHT_BACK_CORNER		  Near	 DGROUP:01CB
+RIGHT_UPPER_CORNER		  Near	 DGROUP:01AE
+SECOND_CONDITIONAL		  Near	 DGROUP:0142
 START				  Near	 DGROUP:0100
-UPPER_CORNER			  Near	 DGROUP:019E
+UPPER_CORNER			  Near	 DGROUP:0199
 VIDEOSEG			  Number B800
-X_OFFSET			  Number 0028
+X_OFFSET			  Number 001E
 
 Groups & Segments		  Bit Size Align  Combine Class
 
 DGROUP				  Group
   _DATA				  16  0000 Word	  Public  DATA
-  _TEXT				  16  01E4 Word	  Public  CODE
+  _TEXT				  16  01DF Word	  Public  CODE
 
